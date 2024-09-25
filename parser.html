@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курсы валют</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .currency-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .currency-container h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .currency {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .currency:last-child {
+            margin-bottom: 0;
+        }
+
+        .currency-name {
+            font-size: 18px;
+            color: #555;
+        }
+
+        .currency-rate {
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="currency-container">
+    <h1>Курсы валют</h1>
+    <div class="currency">
+        <span class="currency-name">Доллар США:</span>
+        <span id="k_usd" class="currency-rate">3.60</span>
+    </div>
+    <div class="currency">
+        <span class="currency-name">Евро:</span>
+        <span id="k_euro" class="currency-rate">3.60</span>
+    </div>
+    <div class="currency">
+        <span class="currency-name">Российский рубль:</span>
+        <span id="k_rub" class="currency-rate">3.60</span>
+    </div>
+    <div id="error-message" class="error-message" style="display: none;">Ошибка загрузки данных</div>
+</div>
+
+<script>
+async function fetContrlo(){
+    try{
+        const response = await fetch('/fetch.php');
+        if(!response.ok){
+            throw new Error (`Ошибка HTTP: ${response.status}`);
+        }
+        const xmlText = await response.text();
+        console.log("Xml :", xmlText );
+
+        //Парсинг
+        const parser = new DOMParser();
+        const xmlDOC = parser.parseFromString(xmlText, "application/xml");
+        if (xmlDOC.querySelector("parsererror")){
+            throw new Error ("Ошибка паросера")
+        }
+        //получаем все данные
+
+        const items = xmlDOC.getElementsByTagName('item');
+        let rates ={
+            'USD': null,
+            'EUR': null,
+            'RUB': null
+        };
+
+        for (let item of items){
+            const title = item.getElementsByTagName('title')[0].textContent;
+
+            if (title.includes('CURRENCY CODE: 840')){
+                const match = title.match(/NAME: (.*?)\|.*? RATE:(.*)$/);
+                if(match){
+                    rates.USD = match[2];
+                }
+            }
+
+            if (title.includes('CURRENCY CODE: 978')){
+                const match = title.match(/NAME: (.*?)\|.*? RATE:(.*)$/);
+                if(match){
+                    rates.EUR = match[2];
+                }
+            }
+            if (title.includes('CURRENCY CODE: 810')){
+                const match = title.match(/NAME: (.*?)\|.*? RATE:(.*)$/);
+                if(match){
+                    rates.RUB = match[2];
+                }
+            }
+
+        }
+
+
+
+        if (rates.USD) document.getElementById('k_usd').textContent = rates.USD;
+        if (rates.EUR) document.getElementById('k_euro').textContent = rates.EUR;
+        if (rates.RUB) document.getElementById('k_rub').textContent = rates.RUB;
+    }
+    catch (error){
+        console.error('Ошибка получения данных:', error);
+
+        document.getElementById('k_usd').textContent='Ошибка загрузки данных';
+        document.getElementById('k_euro').textContent='Ошибка загрузки данных';
+        document.getElementById('k_rub').textContent='Ошибка загрузки данных';
+    }
+}
+fetContrlo();
+</script>
+</body>
+</html>
